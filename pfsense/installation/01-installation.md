@@ -1,18 +1,20 @@
+📘 pfSense Installation Guide
 1. Overview
 
-This document describes the full installation process for pfSense 2.7.2 inside VirtualBox, including:
-
+This document describes the complete installation process for pfSense 2.7.2 inside VirtualBox, including:
 Virtual machine creation
-
-Network adapter configuration (WAN/LAN/OPT1)
-
+Network adapter configuration (WAN / LAN / OPT1)
 pfSense disk partitioning
-
 Initial setup and IP addressing
-
 WebConfigurator access
-
-This firewall acts as the core of the SOC lab, providing routing, segmentation, DHCP, DNS, NAT, and security monitoring.
+pfSense serves as the core firewall of the SOC homelab, providing:
+Routing
+Network segmentation
+DHCP
+DNS
+NAT
+Logging
+Security monitoring
 
 2. Virtual Machine Configuration
 VM Software: VirtualBox
@@ -33,156 +35,123 @@ Audio	Disabled (optional)
 USB	OHCI/EHCI
 
 2.2 VirtualBox Network Adapters
-
-pfSense requires at least 2 NICs:
+pfSense requires at least two NICs.
 
 Adapter	Type	Purpose
-Adapter 1	NAT	Provides WAN Internet
-Adapter 2	Host-Only Network (SOC_LAN)	Provides LAN access to internal VMs
-Adapter 3 (optional)	Host-Only Network (HONEYPOT_DMZ)	Used for Honeypot VLAN/DMZ
+Adapter 1	NAT	WAN Internet
+Adapter 2	Host-Only Network (SOC_LAN)	LAN for internal VMs
+Adapter 3 (optional)	Host-Only Network (HONEYPOT_DMZ)	DMZ / Honeypot VLAN
+SOC Lab Network Design
+INTERNET (NAT)
+      ↓
+  [ pfSense ]
+      ↓
+───────────────────────────────
+ LAN (192.168.56.0/24)
+   → Windows Endpoint
+   → Wazuh Server
+   → Kali Linux
+      ↓
+ OPT1 / DMZ (192.168.20.0/24)
+   → Honeypot (Cowrie / Dionaea)
 
-SOC lab design
-WAN (NAT) → pfSense → LAN (192.168.x.0/24) → Windows / Wazuh / Kali  
-                                    ↳ OPT1 → Honeypot DMZ
+3. pfSense Installation
 
-             3.2 Partitioning
+3.1 Start Installer
+Boot VM using ISO
+Select: Install pfSense
 
+3.2 Disk Partitioning
 Choose:
-
-Auto (ZFS) → Guided Root-on-ZFS
-
-Partition scheme:
-
-GPT Partition Table (recommended)
-
-You will see partitions like:
-
+Auto (ZFS)
+  → Guided Root-on-ZFS
+Partition Scheme:
+GPT (recommended)
+Partitions created:
 freebsd-boot
-
 freebsd-ufs
-
 freebsd-swap
-
-Click Finish → Commit
+Select Finish → Commit.
 
 3.3 Complete Installation
-
-Allow distribution files to extract
-
+Allow files to extract
 Reboot system
+Remove the ISO when prompted
+pfSense loads into the console menu
 
-When prompted, remove the ISO so it boots from the VDI
+4. Initial pfSense Console Configuration
+When pfSense boots, interfaces appear:
 
-pfSense will load into the console menu
-
-#️⃣ 4. Initial pfSense Console Configuration
-
-After reboot, pfSense shows:
-
-WAN (em0)  
-LAN (em1)
-OPT1 (em2)  ← if enabled
+WAN  = em0
+LAN  = em1
+OPT1 = em2   (optional)
 
 4.1 Assign Interfaces
-
-From console menu, choose:
-
-1) Assign Interfaces
-
-Typically:
-
+Console → Option 1
+Typical mapping:
 em0 → WAN (NAT)
-
-em1 → LAN (Host-Only ‘SOC_LAN’)
-
-em2 → OPT1 (Host-Only ‘HONEYPOT_DMZ’) (optional)
+em1 → LAN (SOC_LAN)
+em2 → OPT1 (HONEYPOT_DMZ)
 
 4.2 Configure LAN IP
-
-Menu → 2) Set interface(s) IP address
-
-Use:
-
-LAN IPv4: 192.168.56.1
+Console → Option 2
+LAN IPv4 Address: 192.168.56.1
 Subnet: /24
-DHCP: Yes
+Enable DHCP: Yes
 DHCP Range: 192.168.56.100 – 192.168.56.200
 IPv6: Disabled
 
-
-This allows:
-
-Windows Endpoint
-
-Wazuh Server
-
+This provides LAN connectivity to:
+Windows endpoint
+Wazuh server
 Kali Linux
 
-—all to receive LAN IPs.
-
-4.3 Configure OPT1 (Optional DMZ)
-OPT1 IPv4: 192.168.20.1
+4.3 Configure OPT1 (DMZ / Honeypot) (Optional)
+OPT1 IPv4 Address: 192.168.20.1
 Subnet: /24
-DHCP: Yes
+Enable DHCP: Yes
 DHCP Range: 192.168.20.100 – 192.168.20.200
 IPv6: Disabled
-
-
-This network is used for Cowrie honeypot / Dionaea / malware traps.
+This network isolates the honeypot from the main LAN.
 
 5. Accessing the WebConfigurator
-
-After reboot, pfSense displays:
-
-LAN address: https://192.168.56.1/
-
-Steps:
-
-Open browser on host machine
-
-Enter:
+pfSense console displays the LAN address:
 https://192.168.56.1/
 
-Accept self-signed certificate warning
+Steps:
+Open a browser
+Enter: https://192.168.56.1/
+Accept certificate warning
 
 Login:
 
 Username: admin
-
 Password: pfsense
 
+6. Post-Installation Next Steps
 
-6. Post-Installation Steps
+(To be documented in later sections)
 
 Create firewall rules
-
-Add DNS configuration
-
+Configure DNS
 Enable NTP
-
-Configure NAT for outbound
-
-Set up logging export for Splunk/Wazuh
-
+Configure outbound NAT
+Enable logging to Splunk/Wazuh
 Create VLANs
+DMZ / Honeypot isolation rules
 
-Create DMZ rules (honeypot isolation)
+7. Completion
+pfSense base installation is complete and ready for integration with:
+- Wazuh XDR
+- Splunk SIEM
+- Windows endpoint
+- Kali attacker VM
+- Cowrie honeypot
 
-
-8. Completion
-
-pfSense installation is now successfully completed and ready for SOC lab integration.
-
-Next steps will cover:
-
-Interface documentation
-
-DHCP settings
-
-NAT settings
-
-Firewall rules
-
-Connecting Wazuh + Splunk + Windows Endpoint + Kali
-
-Honeypot DMZ configuration
+Next documentation sections:
+- Interfaces
+- DHCP settings
+- NAT
+- Firewall rules
+- Network topology diagram
+- Honeypot DMZ segmentation
